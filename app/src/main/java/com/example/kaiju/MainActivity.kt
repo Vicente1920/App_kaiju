@@ -4,7 +4,9 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import com.example.kaiju.ui.AppKaiju
 import com.example.kaiju.ui.HomeScreen
+import com.example.kaiju.ui.InventarioScreen
 import com.example.kaiju.ui.theme.KaijuTheme
 
 class MainActivity : ComponentActivity() {
@@ -13,7 +15,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             KaijuTheme {
-                HomeScreen()
+                AppKaiju()
 
 
 
