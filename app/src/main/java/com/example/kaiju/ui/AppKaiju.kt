@@ -21,6 +21,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import com.example.kaiju.data.productosDeEjemplo
 import com.example.kaiju.model.Producto
 
 @Composable
@@ -77,7 +78,10 @@ fun AppKaiju() {
                 when (seleccionada) {
                     0 -> InicioScreen()
                     1 -> InventarioScreen(onProductoClick = { productoAbierto = it })
-                    2 -> PantallaPendiente("Movimientos")
+                    2 -> MovimientosScreen(
+                        productos = productosDeEjemplo(),
+                        onConfirmar = { _, _, _, _ ->}
+                    )
                     else -> PantallaPendiente("Ventas")
                 }
             }
