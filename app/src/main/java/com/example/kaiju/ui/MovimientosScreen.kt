@@ -11,9 +11,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.DropdownMenu
@@ -45,6 +42,9 @@ import com.example.kaiju.validacion.stockResultante
 import com.example.kaiju.validacion.validarCantidad
 import com.example.kaiju.validacion.validarMotivo
 import com.example.kaiju.validacion.validarProducto
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Warning
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
