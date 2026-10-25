@@ -129,7 +129,7 @@ fun AppKaiju() {
                                 anterior != null &&
                                 actualizado != null &&
                                 actualizado.stockBajo &&
-                                !anterior.stockBajo
+                                anterior.stock != actualizado.stock
                             ) {
                                 avisarStockBajo(context, actualizado)
                             }
