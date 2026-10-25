@@ -25,11 +25,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.kaiju.data.productosDeEjemplo
+import com.example.kaiju.model.Producto
 import com.example.kaiju.ui.theme.StockBajoTexto
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun InicioScreen() {
+fun InicioScreen(producto: List<Producto>) {
     val productos = remember { productosDeEjemplo() }
 
     // Guía 3: filter. Solo los productos que están en o bajo su stock mínimo
