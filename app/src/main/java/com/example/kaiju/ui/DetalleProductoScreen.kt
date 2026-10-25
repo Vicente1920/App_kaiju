@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -24,13 +25,19 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.example.kaiju.model.Movimiento
 import com.example.kaiju.model.Producto
 import com.example.kaiju.ui.theme.AgotadoTexto
+import com.example.kaiju.ui.theme.DisponibleTexto
 import com.example.kaiju.ui.theme.StockBajoTexto
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DetalleProductoScreen(producto: Producto, onVolver: () -> Unit) {
+fun DetalleProductoScreen(
+    producto: Producto,
+    movimientos: List<Movimiento>,
+    onVolver: () -> Unit
+) {
 
     // Guía 2 (null safety): talla, color y modelo pueden ser null.
     // ?.let solo crea el dato si NO es null. listOfNotNull descarta los null.
@@ -136,8 +143,39 @@ fun DetalleProductoScreen(producto: Producto, onVolver: () -> Unit) {
                         fontWeight = FontWeight.Bold
                     )
                 }
-                item {
-                    Text("Aún no hay movimientos registrados")
+
+                if (movimientos.isEmpty()) {
+                    item {
+                        Text("Aún no hay movimientos registrados")
+                    }
+                }
+
+                items(movimientos) { m ->
+                    // La salida resta; entrada y ajuste muestran la cantidad tal como se registró
+                    val variacion = if (m.tipo == "Salida") -m.cantidad else m.cantidad
+
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = Color.White)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(12.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text("${m.tipo} · ${m.fecha}", fontWeight = FontWeight.Bold)
+                                Text(m.motivo, style = MaterialTheme.typography.bodySmall)
+                            }
+                            Text(
+                                text = if (variacion > 0) "+$variacion" else "$variacion",
+                                fontWeight = FontWeight.Bold,
+                                color = if (variacion < 0) AgotadoTexto else DisponibleTexto
+                            )
+                        }
+                    }
                 }
             }
 

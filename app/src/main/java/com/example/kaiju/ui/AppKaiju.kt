@@ -1,6 +1,10 @@
 package com.example.kaiju.ui
 
+import android.Manifest
+import android.os.Build
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
@@ -12,25 +16,26 @@ import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
-import com.example.kaiju.data.productosDeEjemplo
-import com.example.kaiju.model.Producto
-import android.Manifest
-import android.os.Build
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import com.example.kaiju.data.cargarMovimientos
+import com.example.kaiju.data.cargarProductos
+import com.example.kaiju.data.guardarMovimientos
+import com.example.kaiju.data.guardarProductos
+import com.example.kaiju.model.Movimiento
+import com.example.kaiju.model.Producto
 import com.example.kaiju.notificaciones.avisarStockBajo
 import com.example.kaiju.validacion.stockResultante
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 
 @Composable
 fun AppKaiju() {
@@ -38,9 +43,10 @@ fun AppKaiju() {
 
     var seleccionada by remember { mutableIntStateOf(0) }
 
-    var productos by remember { mutableStateOf(productosDeEjemplo()) }
-
     val context = LocalContext.current
+
+    var productos by remember { mutableStateOf(cargarProductos(context)) }
+    var movimientos by remember { mutableStateOf(cargarMovimientos(context)) }
 
     //prepara la ventana que pide el permiso de notificaciones
     val pedirPermiso = rememberLauncherForActivityResult(
@@ -96,6 +102,9 @@ fun AppKaiju() {
                 BackHandler { productoAbierto = null }
                 DetalleProductoScreen(
                     producto = producto,
+                    movimientos = movimientos
+                        .filter { it.codigoProducto == producto.codigo }
+                        .reversed(),
                     onVolver = { productoAbierto = null }
                 )
             } else {
@@ -108,7 +117,7 @@ fun AppKaiju() {
                     )
                     2 -> MovimientosScreen(
                         productos = productos,
-                        onConfirmar = { codigo, tipo, cantidad, _ ->
+                        onConfirmar = { codigo, tipo, cantidad, motivo ->
                             val anterior = productos.find { it.codigo == codigo }
 
                             //se crea una lista nueva donde solo cambia el stock
@@ -120,6 +129,18 @@ fun AppKaiju() {
                                     p
                                 }
                             }
+                            guardarProductos(context, productos)
+
+                            // Deja registro del movimiento (trazabilidad)
+                            movimientos = movimientos + Movimiento(
+                                codigoProducto = codigo,
+                                tipo = tipo,
+                                cantidad = cantidad,
+                                motivo = motivo,
+                                fecha = LocalDateTime.now()
+                                    .format(DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm"))
+                            )
+                            guardarMovimientos(context, movimientos)
 
                             // Avisa solo si antes estaba sobre el mínimo
                             // y ahora quedó en el mínimo o bajo él
@@ -136,20 +157,6 @@ fun AppKaiju() {
                         }
                     )
                     else -> VentasScreen()
-                }
-
-
-                @Composable
-fun PantallaPendiente(titulo: String) {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "$titulo (próximamente)",
-                            style = MaterialTheme.typography.titleMedium
-                        )
-                    }
                 }
             }
         }
