@@ -23,6 +23,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import com.example.kaiju.data.productosDeEjemplo
 import com.example.kaiju.model.Producto
+import android.Manifest
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.platform.LocalContext
+import com.example.kaiju.notificaciones.avisarStockBajo
+import com.example.kaiju.validacion.stockResultante
 
 @Composable
 fun AppKaiju() {
@@ -32,7 +40,21 @@ fun AppKaiju() {
 
     var productos by remember { mutableStateOf(productosDeEjemplo()) }
 
-    // null = no hay detalle abierto. Si tiene un producto, se muestra su detalle.
+    val context = LocalContext.current
+
+    //prepara la ventana que pide el permiso de notificaciones
+    val pedirPermiso = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { }
+
+    //se ejecuta una vez al abrir la app: pide el permiso (solo hace falta desde Android 13)
+    LaunchedEffect(Unit) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            pedirPermiso.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }
+
+    //null = no hay detalle abierto. Si tiene un producto, se muestra su detalle.
     var productoAbierto by remember { mutableStateOf<Producto?>(null) }
 
     Scaffold(
@@ -77,6 +99,7 @@ fun AppKaiju() {
                     onVolver = { productoAbierto = null }
                 )
             } else {
+
                 when (seleccionada) {
                     0 -> InicioScreen(productos = productos)
                     1 -> InventarioScreen(
@@ -85,21 +108,50 @@ fun AppKaiju() {
                     )
                     2 -> MovimientosScreen(
                         productos = productos,
-                        onConfirmar = { _, _, _, _ -> }
+                        onConfirmar = { codigo, tipo, cantidad, _ ->
+                            val anterior = productos.find { it.codigo == codigo }
+
+                            //se crea una lista nueva donde solo cambia el stock
+                            //del producto del movimiento
+                            productos = productos.map { p ->
+                                if (p.codigo == codigo) {
+                                    p.copy(stock = stockResultante(p, tipo, cantidad))
+                                } else {
+                                    p
+                                }
+                            }
+
+                            // Avisa solo si antes estaba sobre el mínimo
+                            // y ahora quedó en el mínimo o bajo él
+                            val actualizado = productos.find { it.codigo == codigo }
+
+                            if (
+                                anterior != null &&
+                                actualizado != null &&
+                                actualizado.stockBajo &&
+                                !anterior.stockBajo
+                            ) {
+                                avisarStockBajo(context, actualizado)
+                            }
+                        }
                     )
-                    else -> PantallaPendiente("Ventas")
+                    else -> VentasScreen()
+                }
+
+
+                @Composable
+fun PantallaPendiente(titulo: String) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "$titulo (próximamente)",
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                    }
                 }
             }
         }
-    }
-}
-
-@Composable
-fun PantallaPendiente(titulo: String) {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(text = "$titulo (próximamente)", style = MaterialTheme.typography.titleMedium)
     }
 }
