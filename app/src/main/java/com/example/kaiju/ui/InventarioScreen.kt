@@ -42,8 +42,7 @@ import com.example.kaiju.ui.theme.StockBajoTexto
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun InventarioScreen(onProductoClick: (Producto) -> Unit) {
-    val productos = remember { productosDeEjemplo() }
+fun InventarioScreen(productos: List<Producto>, onProductoClick: (Producto) -> Unit) {
 
     var busqueda by remember { mutableStateOf("") }
     var filtro by remember { mutableStateOf("Todos") }

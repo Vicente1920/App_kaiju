@@ -30,8 +30,7 @@ import com.example.kaiju.ui.theme.StockBajoTexto
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun InicioScreen(producto: List<Producto>) {
-    val productos = remember { productosDeEjemplo() }
+fun InicioScreen(productos: List<Producto>) {
 
     // Guía 3: filter. Solo los productos que están en o bajo su stock mínimo
     val porReponer = productos.filter { it.stockBajo }

@@ -30,6 +30,8 @@ fun AppKaiju() {
 
     var seleccionada by remember { mutableIntStateOf(0) }
 
+    var productos by remember { mutableStateOf(productosDeEjemplo()) }
+
     // null = no hay detalle abierto. Si tiene un producto, se muestra su detalle.
     var productoAbierto by remember { mutableStateOf<Producto?>(null) }
 
@@ -76,11 +78,14 @@ fun AppKaiju() {
                 )
             } else {
                 when (seleccionada) {
-                    0 -> InicioScreen()
-                    1 -> InventarioScreen(onProductoClick = { productoAbierto = it })
+                    0 -> InicioScreen(productos = productos)
+                    1 -> InventarioScreen(
+                        productos = productos,
+                        onProductoClick = { productoAbierto = it }
+                    )
                     2 -> MovimientosScreen(
-                        productos = productosDeEjemplo(),
-                        onConfirmar = { _, _, _, _ ->}
+                        productos = productos,
+                        onConfirmar = { _, _, _, _ -> }
                     )
                     else -> PantallaPendiente("Ventas")
                 }
