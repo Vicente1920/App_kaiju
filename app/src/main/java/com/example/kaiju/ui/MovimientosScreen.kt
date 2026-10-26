@@ -45,6 +45,9 @@ import com.example.kaiju.validacion.validarProducto
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -206,8 +209,15 @@ fun MovimientosScreen(
                 Text("Confirmar movimiento", modifier = Modifier.padding(start = 8.dp))
             }
 
-            if (mensajeExito.isNotEmpty()){
-                Text(mensajeExito, color = MaterialTheme.colorScheme.primary)
+            AnimatedVisibility(
+                visible = mensajeExito.isNotEmpty(),
+                enter = fadeIn(),
+                exit = fadeOut()
+            ) {
+                Text(
+                    text = mensajeExito,
+                    color = MaterialTheme.colorScheme.primary
+                )
             }
         }
     }
