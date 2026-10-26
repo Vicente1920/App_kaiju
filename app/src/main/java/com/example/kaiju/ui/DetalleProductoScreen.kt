@@ -30,14 +30,49 @@ import com.example.kaiju.model.Producto
 import com.example.kaiju.ui.theme.AgotadoTexto
 import com.example.kaiju.ui.theme.DisponibleTexto
 import com.example.kaiju.ui.theme.StockBajoTexto
+import android.Manifest
+import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.ContextCompat
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.height
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DetalleProductoScreen(
     producto: Producto,
     movimientos: List<Movimiento>,
+    fotoProducto: Bitmap?,
+    onFotoTomada: (Bitmap) -> Unit,
     onVolver: () -> Unit
 ) {
+    val context = LocalContext.current
+
+
+    val tomarFoto = rememberLauncherForActivityResult(
+        ActivityResultContracts.TakePicturePreview()
+    ) { foto ->
+        if (foto != null) {
+            onFotoTomada(foto)
+        }
+    }
+
+    val pedirPermisoCamara = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { permisoConcedido ->
+        if (permisoConcedido) {
+            tomarFoto.launch(null)
+        }
+    }
 
     // Guía 2 (null safety): talla, color y modelo pueden ser null.
     // ?.let solo crea el dato si NO es null. listOfNotNull descarta los null.
@@ -113,6 +148,63 @@ fun DetalleProductoScreen(
                                     fontWeight = FontWeight.Bold
                                 )
                                 EtiquetaEstado(producto)
+                            }
+                        }
+                    }
+                }
+
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = Color.White)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp)
+                        ) {
+                            Text(
+                                text = "Foto del producto",
+                                style = MaterialTheme.typography.titleMedium
+                            )
+
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            if (fotoProducto != null) {
+                                Image(
+                                    bitmap = fotoProducto!!.asImageBitmap(),
+                                    contentDescription = "Foto del producto",
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(180.dp)
+                                )
+
+                                Text(
+                                    text = "Foto capturada correctamente",
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            } else {
+                                Text("Todavía no hay una foto")
+                            }
+
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            Button(
+                                onClick = {
+                                    if (
+                                        ContextCompat.checkSelfPermission(
+                                            context,
+                                            Manifest.permission.CAMERA
+                                        ) == PackageManager.PERMISSION_GRANTED
+                                    ) {
+                                        tomarFoto.launch(null)
+                                    } else {
+                                        pedirPermisoCamara.launch(
+                                            Manifest.permission.CAMERA
+                                        )
+                                    }
+                                },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text("Tomar foto")
                             }
                         }
                     }

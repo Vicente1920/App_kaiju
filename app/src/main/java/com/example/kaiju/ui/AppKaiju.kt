@@ -36,6 +36,7 @@ import com.example.kaiju.notificaciones.avisarStockBajo
 import com.example.kaiju.validacion.stockResultante
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+import android.graphics.Bitmap
 
 @Composable
 fun AppKaiju() {
@@ -62,6 +63,9 @@ fun AppKaiju() {
 
     //null = no hay detalle abierto. Si tiene un producto, se muestra su detalle.
     var productoAbierto by remember { mutableStateOf<Producto?>(null) }
+    var fotosProductos by remember {
+        mutableStateOf<Map<String, Bitmap>>(emptyMap())
+    }
 
     Scaffold(
         bottomBar = {
@@ -102,9 +106,12 @@ fun AppKaiju() {
                 BackHandler { productoAbierto = null }
                 DetalleProductoScreen(
                     producto = producto,
-                    movimientos = movimientos
-                        .filter { it.codigoProducto == producto.codigo }
-                        .reversed(),
+                    movimientos = movimientos.filter {
+                        it.codigoProducto == producto.codigo},
+                    fotoProducto = fotosProductos[producto.codigo],
+                    onFotoTomada = { foto ->
+                        fotosProductos = fotosProductos + (producto.codigo to foto)
+                    },
                     onVolver = { productoAbierto = null }
                 )
             } else {
