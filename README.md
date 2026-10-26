@@ -11,8 +11,6 @@ Aplicación móvil Android desarrollada en **Kotlin** con **Jetpack Compose** pa
 - Aaron Hernandez
 - Vicente Jaramillo
 
-**Planificación (Trello):** [pegar aquí el enlace del tablero]
-
 ## Descripción del proyecto
 
 Kaiju administra productos, materiales e insumos que se reciben, almacenan, usan o venden. Hoy el control de inventario se hace con registros manuales, lo que genera diferencias entre el stock registrado y el real, entradas y salidas sin anotar, y poca visibilidad de los productos que se están agotando.
