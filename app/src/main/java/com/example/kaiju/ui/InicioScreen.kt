@@ -30,7 +30,10 @@ import com.example.kaiju.ui.theme.StockBajoTexto
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun InicioScreen(productos: List<Producto>) {
+fun InicioScreen(
+    productos: List<Producto>,
+    onRegistrar: (String) -> Unit
+) {
 
     // Guía 3: filter. Solo los productos que están en o bajo su stock mínimo
     val porReponer = productos.filter { it.stockBajo }
@@ -69,16 +72,16 @@ fun InicioScreen(productos: List<Producto>) {
                 }
             }
 
-            // Botones de acción (todavía no hacen nada)
+            // Botones de acción: llevan a la pestaña Movimientos
             item {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Button(onClick = { }, modifier = Modifier.weight(1f)) {
+                    Button(onClick = { onRegistrar("Entrada") }, modifier = Modifier.weight(1f)) {
                         Text("Registrar entrada")
                     }
-                    OutlinedButton(onClick = { }, modifier = Modifier.weight(1f)) {
+                    OutlinedButton(onClick = { onRegistrar("Salida") }, modifier = Modifier.weight(1f)) {
                         Text("Registrar salida")
                     }
                 }

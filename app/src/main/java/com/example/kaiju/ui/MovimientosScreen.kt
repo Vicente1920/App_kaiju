@@ -1,16 +1,20 @@
 package com.example.kaiju.ui
 
-import androidx.compose.foundation.gestures.scrollable
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.DropdownMenu
@@ -28,13 +32,11 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.kaiju.model.Producto
 import com.example.kaiju.ui.theme.AgotadoTexto
@@ -42,34 +44,28 @@ import com.example.kaiju.validacion.stockResultante
 import com.example.kaiju.validacion.validarCantidad
 import com.example.kaiju.validacion.validarMotivo
 import com.example.kaiju.validacion.validarProducto
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Warning
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MovimientosScreen(
     productos: List<Producto>,
+    tipoInicial: String = "Entrada",
     onConfirmar: (codigo: String, tipo: String, cantidad: Int, motivo: String) -> Unit
-){
-    var tipo by remember {mutableStateOf("Entrada")}
-    var codigoElegido by remember { mutableStateOf<String?>(null)}
-    var menuAbierto by remember { mutableStateOf(false)}
-    var cantidad by remember { mutableIntStateOf(1)}
-    var motivo by remember { mutableStateOf("")}
-    var mensajeExito by remember { mutableStateOf("")}
+) {
+    var tipo by remember(tipoInicial) { mutableStateOf(tipoInicial) }
+    var codigoElegido by remember { mutableStateOf<String?>(null) }
+    var menuAbierto by remember { mutableStateOf(false) }
+    var cantidad by remember { mutableIntStateOf(1) }
+    var motivo by remember { mutableStateOf("") }
+    var mensajeExito by remember { mutableStateOf("") }
 
     // mensaje de error por campo
-    var errorProducto by remember {mutableStateOf<String?>(null)}
-    var errorCantidad by remember { mutableStateOf<String?>(null)}
-    var errorMotivo by remember { mutableStateOf<String?>(null)}
+    var errorProducto by remember { mutableStateOf<String?>(null) }
+    var errorCantidad by remember { mutableStateOf<String?>(null) }
+    var errorMotivo by remember { mutableStateOf<String?>(null) }
 
-
-    //producto elegido se busca por codigo
-    val producto = productos.find { it.codigo == codigoElegido}
+    // producto elegido se busca por codigo
+    val producto = productos.find { it.codigo == codigoElegido }
 
     Scaffold(
         topBar = {
@@ -89,17 +85,26 @@ fun MovimientosScreen(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            //tipo de movimiento
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)){
+            // tipo de movimiento
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 listOf("Entrada", "Salida", "Ajuste").forEach { opcion ->
                     FilterChip(
                         selected = tipo == opcion,
-                        onClick = {tipo = opcion},
-                        label = { Text(opcion)}
+                        onClick = {
+                            tipo = opcion
+                            // Si no es Ajuste, la cantidad vuelve a ser positiva
+                            if (opcion != "Ajuste" && cantidad < 1) cantidad = 1
+                            // En Salida, la cantidad no puede pasar del stock
+                            if (opcion == "Salida" && producto != null && cantidad > producto.stock) {
+                                cantidad = maxOf(producto.stock, 1)
+                            }
+                        },
+                        label = { Text(opcion) }
                     )
                 }
             }
 
+            // producto elegido
             Card(modifier = Modifier.fillMaxWidth()) {
                 Row(
                     modifier = Modifier
@@ -126,10 +131,13 @@ fun MovimientosScreen(
                         ) {
                             productos.forEach { p ->
                                 DropdownMenuItem(
-                                    text = { Text("${p.codigo} ${p.nombre}")},
+                                    text = { Text("${p.codigo} ${p.nombre}") },
                                     onClick = {
                                         codigoElegido = p.codigo
                                         menuAbierto = false
+                                        if (tipo == "Salida" && cantidad > p.stock) {
+                                            cantidad = maxOf(p.stock, 1)
+                                        }
                                     }
                                 )
                             }
@@ -139,7 +147,7 @@ fun MovimientosScreen(
             }
             MensajeError(errorProducto)
 
-            //cantidad botones
+            // cantidad botones
             Card(modifier = Modifier.fillMaxWidth()) {
                 Row(
                     modifier = Modifier
@@ -147,21 +155,38 @@ fun MovimientosScreen(
                         .padding(16.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
-                ){
-                    OutlinedButton(onClick = { cantidad-- }) { Text("-") }
+                ) {
+                    OutlinedButton(
+                        onClick = {
+                            // Entrada y Salida: mínimo 1. Solo Ajuste puede bajar de 1
+                            if (tipo == "Ajuste" || cantidad > 1) cantidad--
+                        }
+                    ) { Text("-") }
+
                     Text(
                         text = "$cantidad",
                         style = MaterialTheme.typography.headlineLarge
                     )
-                    Button(onClick = { cantidad++ }) { Text("+") }
+
+                    Button(
+                        onClick = {
+                            // En Salida no se puede pasar del stock disponible
+                            val maximo =
+                                if (tipo == "Salida" && producto != null) producto.stock else Int.MAX_VALUE
+                            if (cantidad < maximo) cantidad++
+                        }
+                    ) { Text("+") }
                 }
             }
             MensajeError(errorCantidad)
 
-            //motivo : el campo se pinta rojo si hay error
+            // motivo: el campo se pinta rojo si hay error
             OutlinedTextField(
                 value = motivo,
-                onValueChange = { motivo = it },
+                onValueChange = {
+                    motivo = it
+                    errorMotivo = null
+                },
                 label = { Text("Motivo") },
                 singleLine = true,
                 isError = errorMotivo != null,
@@ -169,15 +194,15 @@ fun MovimientosScreen(
             )
             MensajeError(errorMotivo)
 
-            //stock resultante: se recalcula solo cuando algo cambia del formulario
+            // stock resultante: se recalcula solo cuando algo cambia del formulario
             if (producto != null) {
-                Card(modifier = Modifier.fillMaxWidth()){
+                Card(modifier = Modifier.fillMaxWidth()) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(16.dp),
                         horizontalArrangement = Arrangement.SpaceBetween
-                    ){
+                    ) {
                         Text("Stock resultante")
                         Text(
                             text = "${stockResultante(producto, tipo, cantidad)} uds"
@@ -185,15 +210,15 @@ fun MovimientosScreen(
                     }
                 }
             }
-            //confirmar: valida cada campo y avisa si no hay error
 
+            // confirmar: valida cada campo y avisa si no hay error
             Button(
                 onClick = {
                     errorProducto = validarProducto(producto)
                     errorCantidad = validarCantidad(producto, tipo, cantidad)
                     errorMotivo = validarMotivo(motivo)
 
-                    if (errorProducto == null && errorCantidad == null && errorMotivo == null && producto != null){
+                    if (errorProducto == null && errorCantidad == null && errorMotivo == null && producto != null) {
                         onConfirmar(producto.codigo, tipo, cantidad, motivo)
                         mensajeExito = "Movimiento registrado"
                         cantidad = 1
@@ -201,10 +226,9 @@ fun MovimientosScreen(
                     } else {
                         mensajeExito = ""
                     }
-
                 },
                 modifier = Modifier.fillMaxWidth()
-            ){
+            ) {
                 Icon(Icons.Default.Check, contentDescription = null)
                 Text("Confirmar movimiento", modifier = Modifier.padding(start = 8.dp))
             }
@@ -221,22 +245,18 @@ fun MovimientosScreen(
             }
         }
     }
-
 }
 
-//mensaje de error con icono, no muestra na si no hay error
-
-
+// mensaje de error con icono, no muestra nada si no hay error
 @Composable
-fun MensajeError(mensaje: String?){
-    if(mensaje != null) {
+fun MensajeError(mensaje: String?) {
+    if (mensaje != null) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(
                 Icons.Default.Warning,
                 contentDescription = null,
                 tint = AgotadoTexto,
                 modifier = Modifier.size(16.dp)
-
             )
             Text(
                 text = mensaje,

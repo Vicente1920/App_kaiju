@@ -1,7 +1,6 @@
 package com.example.kaiju.ui
 
 import android.Manifest
-import android.graphics.Bitmap
 import android.os.Build
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -28,7 +27,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.kaiju.model.Producto
 import com.example.kaiju.viewmodel.InventarioViewModel
 
 @Composable
@@ -36,6 +34,8 @@ fun AppKaiju() {
     val pestanas = listOf("Inicio", "Inventario", "Movimientos", "Ventas")
 
     var seleccionada by remember { mutableIntStateOf(0) }
+
+    var tipoInicial by remember { mutableStateOf("Entrada") }
 
     // El ViewModel es el dueño de los productos y movimientos
     val viewModel: InventarioViewModel = viewModel()
@@ -55,8 +55,8 @@ fun AppKaiju() {
         }
     }
 
-    //null = no hay detalle abierto. Si tiene un producto, se muestra su detalle.
-    var productoAbierto by remember { mutableStateOf<Producto?>(null) }
+    // CAMBIO 1: ahora se guarda solo el CÓDIGO del producto abierto (null = no hay detalle)
+    var codigoAbierto by remember { mutableStateOf<String?>(null) }
 
     val fotosProductos by viewModel.fotos.collectAsState()
 
@@ -68,7 +68,7 @@ fun AppKaiju() {
                         selected = seleccionada == indice,
                         onClick = {
                             seleccionada = indice
-                            productoAbierto = null
+                            codigoAbierto = null
                         },
                         icon = {},
                         label = {
@@ -92,36 +92,44 @@ fun AppKaiju() {
                 .padding(innerPadding)
                 .consumeWindowInsets(innerPadding)
         ) {
-            val producto = productoAbierto
+            // CAMBIO 2: el producto se busca en la lista actual, así siempre tiene el stock al día
+            val producto = productos.find { it.codigo == codigoAbierto }
 
             if (producto != null) {
                 // El botón "atrás" del teléfono también cierra el detalle
-                BackHandler { productoAbierto = null }
+                BackHandler { codigoAbierto = null }
                 DetalleProductoScreen(
                     producto = producto,
                     movimientos = movimientos.filter {
                         it.codigoProducto == producto.codigo
-                    },
+                    }.reversed(),
                     fotoProducto = fotosProductos[producto.codigo],
                     onFotoTomada = { foto ->
                         viewModel.guardarFoto(producto.codigo, foto)
                     },
-                    onVolver = { productoAbierto = null },
+                    onVolver = { codigoAbierto = null },
                     onRegistrarMovimiento = { tipo, cantidad, motivo ->
                         viewModel.registrarMovimiento(producto.codigo, tipo, cantidad, motivo)
                     }
                 )
             } else {
                 when (seleccionada) {
-                    0 -> InicioScreen(productos = productos)
+                    0 -> InicioScreen(
+                        productos = productos,
+                        onRegistrar = { tipo ->
+                            tipoInicial = tipo
+                            seleccionada = 2   // salta a la pestaña Movimientos
+                        }
+                    )
                     1 -> InventarioScreen(
                         productos = productos,
-                        onProductoClick = { productoAbierto = it }
+                        // CAMBIO 3: al hacer clic se guarda solo el código
+                        onProductoClick = { codigoAbierto = it.codigo }
                     )
                     2 -> MovimientosScreen(
                         productos = productos,
+                        tipoInicial = tipoInicial,
                         onConfirmar = { codigo, tipo, cantidad, motivo ->
-                            // Toda la lógica vive ahora en el ViewModel
                             viewModel.registrarMovimiento(codigo, tipo, cantidad, motivo)
                         }
                     )
