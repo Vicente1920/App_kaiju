@@ -1,49 +1,53 @@
 package com.example.kaiju.ui
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import com.example.kaiju.model.Movimiento
 import com.example.kaiju.model.Producto
 import com.example.kaiju.ui.theme.AgotadoTexto
 import com.example.kaiju.ui.theme.DisponibleTexto
 import com.example.kaiju.ui.theme.StockBajoTexto
-import android.Manifest
-import android.content.pm.PackageManager
-import android.graphics.Bitmap
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.platform.LocalContext
-import androidx.core.content.ContextCompat
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.height
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -53,10 +57,13 @@ fun DetalleProductoScreen(
     movimientos: List<Movimiento>,
     fotoProducto: Bitmap?,
     onFotoTomada: (Bitmap) -> Unit,
+    onRegistrarMovimiento: (tipo: String, cantidad: Int, motivo: String) -> Unit,
     onVolver: () -> Unit
 ) {
     val context = LocalContext.current
 
+    // null = cuadro cerrado; "Entrada" o "Salida" = cuadro abierto
+    var tipoDialogo by remember { mutableStateOf<String?>(null) }
 
     val tomarFoto = rememberLauncherForActivityResult(
         ActivityResultContracts.TakePicturePreview()
@@ -170,7 +177,7 @@ fun DetalleProductoScreen(
 
                             if (fotoProducto != null) {
                                 Image(
-                                    bitmap = fotoProducto!!.asImageBitmap(),
+                                    bitmap = fotoProducto.asImageBitmap(),
                                     contentDescription = "Foto del producto",
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -271,20 +278,86 @@ fun DetalleProductoScreen(
                 }
             }
 
-            // Botones fijos abajo (todavía no hacen nada)
+            // Botones fijos abajo
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(16.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Button(onClick = { }, modifier = Modifier.weight(1f)) {
+                Button(onClick = { tipoDialogo = "Entrada" }, modifier = Modifier.weight(1f)) {
                     Text("Registrar entrada")
                 }
-                OutlinedButton(onClick = { }, modifier = Modifier.weight(1f)) {
+                OutlinedButton(onClick = { tipoDialogo = "Salida" }, modifier = Modifier.weight(1f)) {
                     Text("Registrar salida")
                 }
             }
         }
     }
+
+    // Cuadro para pedir cantidad y motivo
+    tipoDialogo?.let { tipo ->
+        DialogoMovimiento(
+            tipo = tipo,
+            stockActual = producto.stock,
+            onConfirmar = { cantidad, motivo ->
+                onRegistrarMovimiento(tipo, cantidad, motivo)
+                tipoDialogo = null
+            },
+            onCancelar = { tipoDialogo = null }
+        )
+    }
+}
+
+@Composable
+fun DialogoMovimiento(
+    tipo: String,
+    stockActual: Int,
+    onConfirmar: (Int, String) -> Unit,
+    onCancelar: () -> Unit
+) {
+    var cantidadTexto by remember { mutableStateOf("") }
+    var motivo by remember { mutableStateOf("") }
+
+    val cantidad = cantidadTexto.toIntOrNull()
+    val error = when {
+        cantidadTexto.isEmpty() -> null
+        cantidad == null || cantidad <= 0 -> "Ingresa una cantidad mayor a 0"
+        tipo == "Salida" && cantidad > stockActual -> "Solo hay $stockActual uds en stock"
+        else -> null
+    }
+    val valido = cantidad != null && cantidad > 0 && error == null && motivo.isNotBlank()
+
+    AlertDialog(
+        onDismissRequest = onCancelar,
+        title = { Text("Registrar ${tipo.lowercase()}") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(
+                    value = cantidadTexto,
+                    onValueChange = { cantidadTexto = it.filter { c -> c.isDigit() } },
+                    label = { Text("Cantidad") },
+                    singleLine = true,
+                    isError = error != null,
+                    supportingText = { error?.let { Text(it) } },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                )
+                OutlinedTextField(
+                    value = motivo,
+                    onValueChange = { motivo = it },
+                    label = { Text("Motivo") },
+                    singleLine = true
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { onConfirmar(cantidad!!, motivo.trim()) },
+                enabled = valido
+            ) { Text("Guardar") }
+        },
+        dismissButton = {
+            TextButton(onClick = onCancelar) { Text("Cancelar") }
+        }
+    )
 }
