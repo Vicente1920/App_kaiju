@@ -33,7 +33,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -52,17 +52,17 @@ fun MovimientosScreen(
     tipoInicial: String = "Entrada",
     onConfirmar: (codigo: String, tipo: String, cantidad: Int, motivo: String) -> Unit
 ) {
-    var tipo by remember(tipoInicial) { mutableStateOf(tipoInicial) }
-    var codigoElegido by remember { mutableStateOf<String?>(null) }
-    var menuAbierto by remember { mutableStateOf(false) }
-    var cantidad by remember { mutableIntStateOf(1) }
-    var motivo by remember { mutableStateOf("") }
-    var mensajeExito by remember { mutableStateOf("") }
+    var tipo by rememberSaveable(tipoInicial) { mutableStateOf(tipoInicial) }
+    var codigoElegido by rememberSaveable { mutableStateOf<String?>(null) }
+    var menuAbierto by rememberSaveable { mutableStateOf(false) }
+    var cantidad by rememberSaveable { mutableIntStateOf(1) }
+    var motivo by rememberSaveable { mutableStateOf("") }
+    var mensajeExito by rememberSaveable { mutableStateOf("") }
 
     // mensaje de error por campo
-    var errorProducto by remember { mutableStateOf<String?>(null) }
-    var errorCantidad by remember { mutableStateOf<String?>(null) }
-    var errorMotivo by remember { mutableStateOf<String?>(null) }
+    var errorProducto by rememberSaveable { mutableStateOf<String?>(null) }
+    var errorCantidad by rememberSaveable { mutableStateOf<String?>(null) }
+    var errorMotivo by rememberSaveable { mutableStateOf<String?>(null) }
 
     // producto elegido se busca por codigo
     val producto = productos.find { it.codigo == codigoElegido }

@@ -21,7 +21,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -33,9 +33,9 @@ import com.example.kaiju.viewmodel.InventarioViewModel
 fun AppKaiju() {
     val pestanas = listOf("Inicio", "Inventario", "Movimientos", "Ventas")
 
-    var seleccionada by remember { mutableIntStateOf(0) }
+    var seleccionada by rememberSaveable { mutableIntStateOf(0) }
 
-    var tipoInicial by remember { mutableStateOf("Entrada") }
+    var tipoInicial by rememberSaveable { mutableStateOf("Entrada") }
 
     // El ViewModel es el dueño de los productos y movimientos
     val viewModel: InventarioViewModel = viewModel()
@@ -56,7 +56,7 @@ fun AppKaiju() {
     }
 
     // CAMBIO 1: ahora se guarda solo el CÓDIGO del producto abierto (null = no hay detalle)
-    var codigoAbierto by remember { mutableStateOf<String?>(null) }
+    var codigoAbierto by rememberSaveable { mutableStateOf<String?>(null) }
 
     val fotosProductos by viewModel.fotos.collectAsState()
 
