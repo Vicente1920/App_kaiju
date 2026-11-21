@@ -2,7 +2,7 @@
 
 # Kaiju · Gestión y trazabilidad de inventario
 
-Aplicación móvil Android desarrollada en **Kotlin** con **Jetpack Compose** para la asignatura **DSY1105 – Desarrollo de Aplicaciones Móviles** (Duoc UC, CITT San Bernardo). Corresponde a la **Evaluación Parcial 2 (encargo en parejas)**.
+Aplicación móvil Android desarrollada en **Kotlin** con **Jetpack Compose** para la asignatura **DSY1105 – Desarrollo de Aplicaciones Móviles** (Duoc UC, CITT San Bernardo). Corresponde a la **Evaluación Parcial 3**.
 
 > Es un MVP académico. Todos los datos son **ficticios**; no se usan credenciales ni información real.
 
