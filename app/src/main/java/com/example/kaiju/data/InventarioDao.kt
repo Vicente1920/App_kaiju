@@ -32,6 +32,17 @@ interface InventarioDao {
     @Insert
     suspend fun insertarMovimiento(movimiento: Movimiento)
 
+    // Para guardar los movimientos que vienen del servidor (con su id original)
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertarMovimientos(movimientos: List<Movimiento>)
+
     @Update
     suspend fun actualizarProducto(producto: Producto)
+
+    // Se usan al sincronizar: se vacía la copia local y se vuelve a llenar
+    @Query("DELETE FROM productos")
+    suspend fun borrarProductos()
+
+    @Query("DELETE FROM movimientos")
+    suspend fun borrarMovimientos()
 }

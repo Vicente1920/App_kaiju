@@ -1,5 +1,7 @@
 package com.example.kaiju.ui
 
+import androidx.compose.runtime.LaunchedEffect
+import kotlinx.coroutines.delay
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -67,6 +69,12 @@ fun MovimientosScreen(
     // producto elegido se busca por codigo
     val producto = productos.find { it.codigo == codigoElegido }
 
+    LaunchedEffect(mensajeExito) {
+        if (mensajeExito.isNotEmpty()) {
+            delay(2000)
+            mensajeExito = ""
+        }
+    }
     Scaffold(
         topBar = {
             TopAppBar(
@@ -220,7 +228,6 @@ fun MovimientosScreen(
 
                     if (errorProducto == null && errorCantidad == null && errorMotivo == null && producto != null) {
                         onConfirmar(producto.codigo, tipo, cantidad, motivo)
-                        mensajeExito = "Movimiento registrado"
                         cantidad = 1
                         motivo = ""
                     } else {
