@@ -1,16 +1,28 @@
-const movimientos = [];
+import pool from "../config/db.js";
 
-export function listarMovimientos() {
-    return movimientos;
+const COLUMNAS = `
+    id,
+    codigo_producto AS "codigoProducto",
+    tipo,
+    cantidad,
+    motivo,
+    fecha
+`;
+
+export async function listarMovimientos() {
+    const resultado = await pool.query(
+        `SELECT ${COLUMNAS} FROM movimientos ORDER BY id`
+    );
+    return resultado.rows;
 }
 
-export function guardarMovimiento(movimiento) {
-    const nuevoMovimiento = {
-        id: movimientos.length + 1,
-        ...movimiento,
-        fecha: new Date().toISOString()
-    };
-
-    movimientos.push(nuevoMovimiento);
-    return nuevoMovimiento;
+// cliente: la conexión de la transacción (si no se pasa, usa el pool).
+export async function guardarMovimiento({ codigoProducto, tipo, cantidad, motivo }, cliente = pool) {
+    const resultado = await cliente.query(
+        `INSERT INTO movimientos (codigo_producto, tipo, cantidad, motivo)
+         VALUES ($1, $2, $3, $4)
+         RETURNING ${COLUMNAS}`,
+        [codigoProducto, tipo, cantidad, motivo]
+    );
+    return resultado.rows[0];
 }

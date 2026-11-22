@@ -1,3 +1,5 @@
+import { conTransaccion } from "../config/db.js";
+
 import {
     buscarProductoPorCodigo,
     actualizarStock
@@ -7,6 +9,8 @@ import {
     listarMovimientos,
     guardarMovimiento
 } from "../repository/movimiento.repository.js";
+
+const TIPOS_VALIDOS = ["Entrada", "Salida", "Ajuste"];
 
 export async function obtenerMovimientos() {
     return await listarMovimientos();
@@ -18,8 +22,9 @@ export async function registrarMovimiento(datos) {
         tipo,
         cantidad,
         motivo
-    } = datos;
+    } = datos ?? {};
 
+    // Validaciones que no necesitan la base de datos
     if (!codigoProducto || !tipo || !motivo || !Number.isInteger(cantidad)) {
         return {
             error: "Los datos del movimiento son inválidos",
@@ -34,19 +39,28 @@ export async function registrarMovimiento(datos) {
         };
     }
 
-    const producto = await buscarProductoPorCodigo(codigoProducto);
-
-    if (!producto) {
+    if (!TIPOS_VALIDOS.includes(tipo)) {
         return {
-            error: "Producto no encontrado",
-            codigo: 404
+            error: "Tipo de movimiento inválido",
+            codigo: 400
         };
     }
 
-    let nuevoStock;
+    // Todo lo siguiente ocurre en UNA transacción: o se guarda todo, o no se guarda nada.
+    return await conTransaccion(async (cliente) => {
+        // Bloquea la fila del producto: otra petición sobre el mismo producto espera su turno.
+        const producto = await buscarProductoPorCodigo(codigoProducto, { cliente, bloquear: true });
 
-    if (tipo === "Salida") {
-        nuevoStock = producto.stock - cantidad;
+        if (!producto) {
+            return {
+                error: "Producto no encontrado",
+                codigo: 404
+            };
+        }
+
+        const nuevoStock = tipo === "Salida"
+            ? producto.stock - cantidad
+            : producto.stock + cantidad;
 
         if (nuevoStock < 0) {
             return {
@@ -54,26 +68,19 @@ export async function registrarMovimiento(datos) {
                 codigo: 409
             };
         }
-    } else if (tipo === "Entrada" || tipo === "Ajuste") {
-        nuevoStock = producto.stock + cantidad;
-    } else {
+
+        const productoActualizado = await actualizarStock(codigoProducto, nuevoStock, cliente);
+
+        const movimiento = await guardarMovimiento({
+            codigoProducto,
+            tipo,
+            cantidad,
+            motivo
+        }, cliente);
+
         return {
-            error: "Tipo de movimiento inválido",
-            codigo: 400
+            movimiento,
+            producto: productoActualizado
         };
-    }
-
-    await actualizarStock(codigoProducto, nuevoStock);
-
-    const movimiento = await guardarMovimiento({
-        codigoProducto,
-        tipo,
-        cantidad,
-        motivo
     });
-
-    return {
-        movimiento,
-        producto: await buscarProductoPorCodigo(codigoProducto)
-    };
 }

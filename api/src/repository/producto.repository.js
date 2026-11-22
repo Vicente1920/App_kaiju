@@ -1,32 +1,37 @@
-const productos = [
-    {
-        codigo: "P001",
-        nombre: "Polera Kaiju",
-        categoria: "Ropa",
-        precio: 12990,
-        stock: 10,
-        stockMinimo: 2,
-        talla: "M",
-        color: "Negro",
-        modelo: "Clásico"
-    }
-];
+import pool from "../config/db.js";
+
+const COLUMNAS = `
+    codigo,
+    nombre,
+    categoria,
+    precio,
+    stock,
+    stock_minimo AS "stockMinimo",
+    talla,
+    color,
+    modelo
+`;
 
 export async function listarProductos() {
-    return productos;
+    const resultado = await pool.query(
+        `SELECT ${COLUMNAS} FROM productos ORDER BY codigo`
+    );
+    return resultado.rows;
 }
 
-export async function buscarProductoPorCodigo(codigo) {
-    return productos.find(producto => producto.codigo === codigo);
+// Si bloquear es true, la fila queda bloqueada (FOR UPDATE) hasta que termine la transacción.
+export async function buscarProductoPorCodigo(codigo, { cliente = pool, bloquear = false } = {}) {
+    const resultado = await cliente.query(
+        `SELECT ${COLUMNAS} FROM productos WHERE codigo = $1 ${bloquear ? "FOR UPDATE" : ""}`,
+        [codigo]
+    );
+    return resultado.rows[0];
 }
 
-export async function actualizarStock(codigo, nuevoStock) {
-    const producto = productos.find(item => item.codigo === codigo);
-
-    if (!producto) {
-        return null;
-    }
-
-    producto.stock = nuevoStock;
-    return producto;
+export async function actualizarStock(codigo, nuevoStock, cliente = pool) {
+    const resultado = await cliente.query(
+        `UPDATE productos SET stock = $1 WHERE codigo = $2 RETURNING ${COLUMNAS}`,
+        [nuevoStock, codigo]
+    );
+    return resultado.rows[0] ?? null;
 }
