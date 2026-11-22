@@ -12,10 +12,21 @@ const productos = [
     }
 ];
 
-export function listarProductos() {
+export async function listarProductos() {
     return productos;
 }
 
-export function buscarProductoPorCodigo(codigo) {
+export async function buscarProductoPorCodigo(codigo) {
     return productos.find(producto => producto.codigo === codigo);
+}
+
+export async function actualizarStock(codigo, nuevoStock) {
+    const producto = productos.find(item => item.codigo === codigo);
+
+    if (!producto) {
+        return null;
+    }
+
+    producto.stock = nuevoStock;
+    return producto;
 }

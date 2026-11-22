@@ -1,12 +1,9 @@
-import {
-    listarProductos,
-    buscarProductoPorCodigo
-} from "../repository/producto.repository.js";
+import {listarProductos, buscarProductoPorCodigo} from "../repository/producto.repository.js";
 
-export function obtenerProductos() {
-    return listarProductos();
+export async function obtenerProductos() {
+    return await listarProductos();
 }
 
-export function obtenerProductoPorCodigo(codigo) {
-    return buscarProductoPorCodigo(codigo);
+export async function obtenerProductoPorCodigo(codigo) {
+    return await buscarProductoPorCodigo(codigo);
 }
