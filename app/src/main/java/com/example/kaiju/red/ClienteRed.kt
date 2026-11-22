@@ -5,15 +5,15 @@ import retrofit2.converter.gson.GsonConverterFactory
 
 object ClienteRed {
 
-    // Desde el emulador, 10.0.2.2 es "el PC donde corre el emulador".
-    // Si pones localhost, apuntaría al propio emulador y no encontraría nada.
+    //API desplegada en la instancia EC2
+    // la barra final es necesaria para retrofit.
     private val retrofit = Retrofit.Builder()
-        .baseUrl("http://10.0.2.2:3000/")
+        .baseUrl("http://54.242.202.179:3000/" )
         .addConverterFactory(GsonConverterFactory.create())
         .build()
 
 
-
+    // se crea la api cuando se utiliza por primera vez
     // "by lazy": se crea solo la primera vez que alguien lo usa
     val productosApi: ProductosApi by lazy {
         retrofit.create(ProductosApi::class.java)
