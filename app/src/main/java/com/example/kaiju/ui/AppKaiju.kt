@@ -36,7 +36,7 @@ import com.example.kaiju.viewmodel.InventarioViewModel
 
 @Composable
 fun AppKaiju() {
-    val pestanas = listOf("Inicio", "Inventario", "Movimientos", "Ventas")
+    val pestanas = listOf("Inicio", "Inventario", "Movimientos", "Ventas", "Resumen")
 
     var seleccionada by rememberSaveable { mutableIntStateOf(0) }
 
@@ -153,7 +153,10 @@ fun AppKaiju() {
                                 viewModel.registrarMovimiento(cod, tipo, cantidad, motivo)
                             }
                         )
-                        else -> VentasScreen()
+                        3 -> VentasScreen()
+                        4 -> ResumenDiaScreen(
+                            movimientos = movimientos
+                        )
                     }
                 }
             }

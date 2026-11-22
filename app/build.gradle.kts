@@ -37,6 +37,8 @@ android {
 }
 
 dependencies {
+    implementation("io.coil-kt:coil-compose:2.7.0")
+
     implementation(libs.retrofit)
     implementation(libs.retrofit.gson)
 
