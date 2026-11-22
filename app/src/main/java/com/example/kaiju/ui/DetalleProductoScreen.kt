@@ -1,5 +1,9 @@
 package com.example.kaiju.ui
 
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 import android.Manifest
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
@@ -50,6 +54,14 @@ import com.example.kaiju.ui.theme.DisponibleTexto
 import com.example.kaiju.ui.theme.StockBajoTexto
 
 
+
+private fun formatearFechaLocal(fechaIso: String): String {
+    return runCatching {
+        Instant.parse(fechaIso)
+            .atZone(ZoneId.systemDefault())
+            .format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm", Locale("es", "CL")))
+    }.getOrDefault(fechaIso)
+}
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DetalleProductoScreen(
@@ -265,7 +277,7 @@ fun DetalleProductoScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
-                                Text("${m.tipo} · ${m.fecha}", fontWeight = FontWeight.Bold)
+                                Text("${m.tipo} · ${formatearFechaLocal(m.fecha)}", fontWeight = FontWeight.Bold)
                                 Text(m.motivo, style = MaterialTheme.typography.bodySmall)
                             }
                             Text(
