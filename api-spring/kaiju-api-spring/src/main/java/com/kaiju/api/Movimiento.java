@@ -17,7 +17,7 @@ public class Movimiento {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private Integer id;
 
     @Column(name = "codigo_producto", nullable = false)
     private String codigoProducto;
@@ -45,7 +45,7 @@ public class Movimiento {
         this.motivo = motivo;
     }
 
-    public Long getId() {
+    public Integer getId() {
         return id;
     }
 
