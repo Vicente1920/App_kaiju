@@ -1,5 +1,7 @@
 package com.example.kaiju.ui
 
+import androidx.compose.runtime.LaunchedEffect
+import kotlinx.coroutines.delay
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -68,6 +70,8 @@ fun DetalleProductoScreen(
     producto: Producto,
     movimientos: List<Movimiento>,
     fotoProducto: Bitmap?,
+    mensajeServidor: String? = null,
+    onMensajeMostrado: () -> Unit = {},
     onFotoTomada: (Bitmap) -> Unit,
     onRegistrarMovimiento: (tipo: String, cantidad: Int, motivo: String) -> Unit,
     onVolver: () -> Unit
@@ -76,6 +80,33 @@ fun DetalleProductoScreen(
 
     // null = cuadro cerrado; "Entrada" o "Salida" = cuadro abierto
     var tipoDialogo by remember { mutableStateOf<String?>(null) }
+
+    var movimientoPendiente by remember { mutableStateOf<String?>(null) }
+    var mensajeVisible by remember { mutableStateOf<String?>(null) }
+    var esConfirmacion by remember { mutableStateOf(false) }
+
+    LaunchedEffect(mensajeServidor) {
+        if (!mensajeServidor.isNullOrBlank()) {
+            val confirmado = mensajeServidor == "Movimiento registrado"
+
+            esConfirmacion = confirmado
+            mensajeVisible = if (confirmado) {
+                when (movimientoPendiente) {
+                    "Entrada" -> "Entrada registrada correctamente"
+                    "Salida" -> "Salida registrada correctamente"
+                    else -> "Movimiento registrado correctamente"
+                }
+            } else {
+                mensajeServidor
+            }
+
+            movimientoPendiente = null
+
+            delay(3000)
+            mensajeVisible = null
+            onMensajeMostrado()
+        }
+    }
 
     val tomarFoto = rememberLauncherForActivityResult(
         ActivityResultContracts.TakePicturePreview()
@@ -291,6 +322,47 @@ fun DetalleProductoScreen(
             }
 
             // Botones fijos abajo
+
+            if (mensajeVisible != null) {
+                val colorFondo = if (esConfirmacion) {
+                    Color(0xFFE8F5E9)
+                } else {
+                    MaterialTheme.colorScheme.errorContainer
+                }
+
+                val colorTexto = if (esConfirmacion) {
+                    Color(0xFF1B5E20)
+                } else {
+                    MaterialTheme.colorScheme.onErrorContainer
+                }
+
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = colorFondo
+                    )
+                ) {
+                    Row(
+                        modifier = Modifier.padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = if (esConfirmacion) "✓" else "!",
+                            fontWeight = FontWeight.Bold,
+                            color = colorTexto
+                        )
+
+                        Text(
+                            text = "  $mensajeVisible",
+                            color = colorTexto,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            }
+
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -313,6 +385,7 @@ fun DetalleProductoScreen(
             tipo = tipo,
             stockActual = producto.stock,
             onConfirmar = { cantidad, motivo ->
+                movimientoPendiente = tipo
                 onRegistrarMovimiento(tipo, cantidad, motivo)
                 tipoDialogo = null
             },

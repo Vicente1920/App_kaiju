@@ -35,3 +35,45 @@ export async function actualizarStock(codigo, nuevoStock, cliente = pool) {
     );
     return resultado.rows[0] ?? null;
 }
+export async function crearProducto(producto) {
+    const {
+        codigo,
+        nombre,
+        categoria,
+        precio,
+        stock,
+        stockMinimo,
+        talla = null,
+        color = null,
+        modelo = null
+    } = producto;
+
+    const resultado = await pool.query(
+        `INSERT INTO productos (
+            codigo,
+            nombre,
+            categoria,
+            precio,
+            stock,
+            stock_minimo,
+            talla,
+            color,
+            modelo
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        RETURNING ${COLUMNAS}`,
+        [
+            codigo,
+            nombre,
+            categoria,
+            precio,
+            stock,
+            stockMinimo,
+            talla,
+            color,
+            modelo
+        ]
+    );
+
+    return resultado.rows[0];
+}

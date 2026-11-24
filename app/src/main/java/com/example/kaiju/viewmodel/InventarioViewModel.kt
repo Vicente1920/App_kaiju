@@ -10,6 +10,7 @@ import com.example.kaiju.data.cargarProductos
 import com.example.kaiju.model.Movimiento
 import com.example.kaiju.model.Producto
 import com.example.kaiju.notificaciones.avisarStockBajo
+import com.example.kaiju.red.ProductoRequest
 import com.example.kaiju.validacion.stockResultante
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -34,11 +35,11 @@ class InventarioViewModel(application: Application) : AndroidViewModel(applicati
     val movimientos: StateFlow<List<Movimiento>> = repositorio.movimientos
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
-    // fotos por código de producto (siguen en memoria)
+    // Fotos por código de producto; se mantienen en memoria.
     private val _fotos = MutableStateFlow<Map<String, Bitmap>>(emptyMap())
     val fotos: StateFlow<Map<String, Bitmap>> = _fotos.asStateFlow()
 
-    // Mensajes para el usuario (errores o avisos). null = no hay nada que mostrar
+    // Mensajes para el usuario. null = no hay nada que mostrar.
     private val _mensaje = MutableStateFlow<String?>(null)
     val mensaje: StateFlow<String?> = _mensaje.asStateFlow()
 
@@ -48,17 +49,20 @@ class InventarioViewModel(application: Application) : AndroidViewModel(applicati
 
     init {
         viewModelScope.launch {
-            // Primera vez sin conexión: al menos hay datos de ejemplo para mostrar
+            // Primera vez sin conexión: al menos hay datos de ejemplo para mostrar.
             if (repositorio.contarProductos() == 0) {
                 repositorio.insertarProductos(cargarProductos(getApplication()))
             }
-            // Después se intenta bajar los datos reales del servidor
+
+            // Después se intenta bajar los datos reales del servidor.
             sincronizarAhora()
         }
     }
 
     fun sincronizar() {
-        viewModelScope.launch { sincronizarAhora() }
+        viewModelScope.launch {
+            sincronizarAhora()
+        }
     }
 
     // Devuelve true si pudo bajar los datos. Si falla, Room queda como estaba.
@@ -74,17 +78,23 @@ class InventarioViewModel(application: Application) : AndroidViewModel(applicati
         }
     }
 
-    fun registrarMovimiento(codigo: String, tipo: String, cantidad: Int, motivo: String) {
+    fun registrarMovimiento(
+        codigo: String,
+        tipo: String,
+        cantidad: Int,
+        motivo: String
+    ) {
         viewModelScope.launch {
             val anterior = repositorio.obtenerProducto(codigo) ?: return@launch
 
-            // Defensa local: ni siquiera se molesta al servidor si ya sabemos que falla
+            // Defensa local: evita enviar al servidor una salida que ya sabemos que falla.
             if (stockResultante(anterior, tipo, cantidad) < 0) {
-                _mensaje.value = "No hay stock suficiente (disponible: ${anterior.stock})"
+                _mensaje.value =
+                    "No hay stock suficiente (disponible: ${anterior.stock})"
                 return@launch
             }
 
-            // 1) El servidor valida y cambia el stock
+            // El servidor valida y registra el movimiento.
             try {
                 repositorio.registrarEnServidor(codigo, tipo, cantidad, motivo)
             } catch (e: CancellationException) {
@@ -94,11 +104,11 @@ class InventarioViewModel(application: Application) : AndroidViewModel(applicati
                 return@launch
             }
 
-            // 2) Se guardó en el servidor: bajamos los datos nuevos a Room
+            // Si se guardó en el servidor, se actualizan los datos locales desde la API.
             if (!sincronizarAhora()) return@launch
             _mensaje.value = "Movimiento registrado"
 
-            // 3) Avisa solo si el stock BAJÓ y quedó en nivel bajo
+            // Avisa solo si el stock bajó y quedó en nivel bajo.
             val actualizado = repositorio.obtenerProducto(codigo) ?: return@launch
             if (actualizado.stockBajo && actualizado.stock < anterior.stock) {
                 avisarStockBajo(getApplication(), actualizado)
@@ -106,14 +116,57 @@ class InventarioViewModel(application: Application) : AndroidViewModel(applicati
         }
     }
 
-    // Traduce los errores técnicos a mensajes que entienda el usuario
+    fun crearProducto(producto: ProductoRequest) {
+        viewModelScope.launch {
+            try {
+                repositorio.crearProductoEnServidor(producto)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: HttpException) {
+                _mensaje.value = when (e.code()) {
+                    400 -> "Revisa los datos del producto"
+                    409 -> "Ya existe un producto con ese código"
+                    else -> "El servidor no pudo guardar el producto"
+                }
+                return@launch
+            } catch (e: IOException) {
+                _mensaje.value =
+                    "Sin conexión con el servidor; el producto no se pudo guardar"
+                return@launch
+            } catch (e: Exception) {
+                _mensaje.value = "Error inesperado al guardar el producto"
+                return@launch
+            }
+
+            if (!sincronizarAhora()) {
+                _mensaje.value =
+                    "Producto guardado, pero no se pudo actualizar la lista. Intenta sincronizar."
+                return@launch
+            }
+
+            _mensaje.value = "Producto registrado"
+        }
+    }
+
+    // Traduce errores técnicos a mensajes que entienda el usuario.
     private fun textoDeError(e: Exception): String = when {
-        e is HttpException && e.code() == 409 -> "No hay stock suficiente"
-        e is HttpException && e.code() == 404 -> "El producto no existe en el servidor"
-        e is HttpException && e.code() == 400 -> "Datos inválidos: revisa cantidad y motivo"
-        e is HttpException && e.code() == 503 -> "El servicio de productos no está disponible"
-        e is IOException -> "Sin conexión con el servidor"
-        else -> "Error inesperado"
+        e is HttpException && e.code() == 409 ->
+            "No hay stock suficiente"
+
+        e is HttpException && e.code() == 404 ->
+            "El producto no existe en el servidor"
+
+        e is HttpException && e.code() == 400 ->
+            "Datos inválidos: revisa cantidad y motivo"
+
+        e is HttpException && e.code() == 503 ->
+            "El servicio de productos no está disponible"
+
+        e is IOException ->
+            "Sin conexión con el servidor"
+
+        else ->
+            "Error inesperado"
     }
 
     fun guardarFoto(codigo: String, foto: Bitmap) {

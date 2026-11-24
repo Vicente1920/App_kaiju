@@ -47,6 +47,7 @@ fun AppKaiju() {
 
     val productos by viewModel.productos.collectAsState()
     val movimientos by viewModel.movimientos.collectAsState()
+    val mensaje by viewModel.mensaje.collectAsState()
 
     // Un solo cuadro que pide todos los permisos que la app necesita al abrir
     val pedirPermisos = rememberLauncherForActivityResult(
@@ -125,6 +126,8 @@ fun AppKaiju() {
                             it.codigoProducto == producto.codigo
                         }.reversed(),
                         fotoProducto = fotosProductos[producto.codigo],
+                        mensajeServidor = mensaje,
+                        onMensajeMostrado = { viewModel.limpiarMensaje() },
                         onFotoTomada = { foto ->
                             viewModel.guardarFoto(producto.codigo, foto)
                         },
@@ -144,11 +147,18 @@ fun AppKaiju() {
                         )
                         1 -> InventarioScreen(
                             productos = productos,
-                            onProductoClick = { codigoAbierto = it.codigo }
+                            onProductoClick = { codigoAbierto = it.codigo },
+                            onCrearProducto = { producto ->
+                                viewModel.crearProducto(producto)
+                            },
+                            mensajeServidor = mensaje,
+                            onMensajeMostrado = { viewModel.limpiarMensaje() }
                         )
                         2 -> MovimientosScreen(
                             productos = productos,
                             tipoInicial = tipoInicial,
+                            mensajeServidor = mensaje,
+                            onMensajeMostrado = { viewModel.limpiarMensaje() },
                             onConfirmar = { cod, tipo, cantidad, motivo ->
                                 viewModel.registrarMovimiento(cod, tipo, cantidad, motivo)
                             }

@@ -1,6 +1,7 @@
 import {
     obtenerProductos,
-    obtenerProductoPorCodigo
+    obtenerProductoPorCodigo,
+    registrarProducto
 } from "../service/producto.service.js";
 
 export async function listar(req, res) {
@@ -18,4 +19,16 @@ export async function obtenerPorCodigo(req, res) {
     }
 
     res.json(producto);
+}
+
+export async function crear(req, res) {
+    const resultado = await registrarProducto(req.body);
+
+    if (resultado.error) {
+        return res.status(resultado.codigo).json({
+            mensaje: resultado.error
+        });
+    }
+
+    return res.status(201).json(resultado.producto);
 }

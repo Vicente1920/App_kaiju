@@ -6,7 +6,7 @@ import com.example.kaiju.model.Producto
 import com.example.kaiju.red.ClienteRed
 import com.example.kaiju.red.MovimientoRequest
 import kotlinx.coroutines.flow.Flow
-
+import com.example.kaiju.red.ProductoRequest
 class InventarioRepository(private val db: KaijuDatabase) {
 
     private val dao = db.inventarioDao()
@@ -16,6 +16,9 @@ class InventarioRepository(private val db: KaijuDatabase) {
 
     suspend fun contarProductos(): Int = dao.contarProductos()
 
+    suspend fun crearProductoEnServidor(producto: ProductoRequest) {
+        ClienteRed.productosApi.crear(producto)
+    }
     suspend fun obtenerProducto(codigo: String): Producto? =
         dao.obtenerProducto(codigo)
 
