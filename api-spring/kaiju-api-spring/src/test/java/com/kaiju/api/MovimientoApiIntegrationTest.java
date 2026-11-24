@@ -1,5 +1,5 @@
 package com.kaiju.api;
-
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -94,6 +94,21 @@ class MovimientoApiIntegrationTest {
 
         assertEquals(0, movimientoRepository.count());
     }
+    @Test
+    void listarMovimientosDevuelveCamposEsperadosPorAndroid() throws Exception {
+        guardarProducto("KJ-TEST", 5);
+        movimientoRepository.saveAndFlush(
+                new Movimiento("KJ-TEST", "Entrada", 2, "Prueba")
+        );
+
+        mockMvc.perform(get("/api/movimientos"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].codigoProducto").value("KJ-TEST"))
+                .andExpect(jsonPath("$[0].tipo").value("Entrada"))
+                .andExpect(jsonPath("$[0].cantidad").value(2))
+                .andExpect(jsonPath("$[0].fecha").exists());
+    }
+
 
     private void guardarProducto(String codigo, int stock) {
         Producto producto = new Producto();
