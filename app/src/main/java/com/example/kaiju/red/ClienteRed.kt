@@ -8,7 +8,7 @@ object ClienteRed {
     //API desplegada en la instancia EC2
     // la barra final es necesaria para retrofit.
     private val retrofit = Retrofit.Builder()
-        .baseUrl("http://3.229.68.111:3000/" )
+        .baseUrl("http://3.229.68.111:3001/" )
         .addConverterFactory(GsonConverterFactory.create())
         .build()
 
