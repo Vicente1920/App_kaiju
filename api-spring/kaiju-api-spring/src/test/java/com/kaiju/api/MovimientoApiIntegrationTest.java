@@ -1,16 +1,18 @@
 package com.kaiju.api;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import org.springframework.test.context.ActiveProfiles;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
 @ActiveProfiles("test")
@@ -70,7 +72,8 @@ class MovimientoApiIntegrationTest {
                                 + "\"motivo\":\"Prueba de stock insuficiente\""
                                 + "}"))
                 .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.mensaje").value("No hay stock suficiente"));
+                .andExpect(jsonPath("$.mensaje")
+                        .value("No hay stock suficiente"));
 
         assertEquals(
                 1,
@@ -90,12 +93,15 @@ class MovimientoApiIntegrationTest {
                                 + "\"motivo\":\"Prueba automática\""
                                 + "}"))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.mensaje").value("Producto no encontrado"));
+                .andExpect(jsonPath("$.mensaje")
+                        .value("Producto no encontrado"));
 
         assertEquals(0, movimientoRepository.count());
     }
+
     @Test
-    void listarMovimientosDevuelveCamposEsperadosPorAndroid() throws Exception {
+    void listarMovimientosDevuelveCamposEsperadosPorAndroid()
+            throws Exception {
         guardarProducto("KJ-TEST", 5);
         movimientoRepository.saveAndFlush(
                 new Movimiento("KJ-TEST", "Entrada", 2, "Prueba")
@@ -109,6 +115,28 @@ class MovimientoApiIntegrationTest {
                 .andExpect(jsonPath("$[0].fecha").exists());
     }
 
+    @Test
+    void cantidadCeroDevuelve400YSinCambiarDatos() throws Exception {
+        guardarProducto("KJ-TEST", 5);
+
+        mockMvc.perform(post("/api/movimientos")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{"
+                                + "\"codigoProducto\":\"KJ-TEST\","
+                                + "\"tipo\":\"Entrada\","
+                                + "\"cantidad\":0,"
+                                + "\"motivo\":\"Prueba inválida\""
+                                + "}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.mensaje")
+                        .value("La cantidad debe ser mayor que 0"));
+
+        assertEquals(
+                5,
+                productoRepository.findById("KJ-TEST").orElseThrow().getStock()
+        );
+        assertEquals(0, movimientoRepository.count());
+    }
 
     private void guardarProducto(String codigo, int stock) {
         Producto producto = new Producto();

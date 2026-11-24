@@ -1,5 +1,6 @@
 package com.kaiju.api;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -76,6 +77,19 @@ class ProductoApiIntegrationTest {
                 .andExpect(jsonPath("$[0].codigo").value("KJ-TEST"))
                 .andExpect(jsonPath("$[0].stockMinimo").value(1))
                 .andExpect(jsonPath("$[0].talla").value("M"));
+    }
+
+    @Test
+    void stockNegativoDevuelve400YSinGuardar() throws Exception {
+        String productoConStockNegativo =
+                jsonProducto().replace("\"stock\":5", "\"stock\":-1");
+
+        mockMvc.perform(post("/api/productos")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(productoConStockNegativo))
+                .andExpect(status().isBadRequest());
+
+        assertEquals(0, productoRepository.count());
     }
 
     private String jsonProducto() {
