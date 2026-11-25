@@ -1,76 +1,196 @@
-# App_kaiju
+# Kaiju — Gestión y trazabilidad de inventario
 
-# Kaiju · Gestión y trazabilidad de inventario
-
-Aplicación móvil Android desarrollada en **Kotlin** con **Jetpack Compose** para la asignatura **DSY1105 – Desarrollo de Aplicaciones Móviles** (Duoc UC, CITT San Bernardo). Corresponde a la **Evaluación Parcial 3**.
-
-> Es un MVP académico. Todos los datos son **ficticios**; no se usan credenciales ni información real.
+Aplicación móvil Android para consultar el inventario y registrar movimientos de productos. Este proyecto es un avance del Examen Final Transversal (EFT) e integra una aplicación móvil, un microservicio propio y una API externa.
 
 ## Integrantes
 
 - Aaron Hernandez
 - Vicente Jaramillo
 
-## Descripción del proyecto
+## Contexto y problema
 
-Kaiju administra productos, materiales e insumos que se reciben, almacenan, usan o venden. Hoy el control de inventario se hace con registros manuales, lo que genera diferencias entre el stock registrado y el real, entradas y salidas sin anotar, y poca visibilidad de los productos que se están agotando.
+En un negocio pequeño, controlar el inventario manualmente puede producir diferencias entre el stock registrado y el disponible. También dificulta detectar productos que necesitan reposición y mantener un historial claro de las entradas y salidas.
 
-La app permite conocer el stock disponible, registrar cada movimiento dejando trazabilidad y detectar a tiempo qué productos hay que reponer.
+Kaiju permite consultar productos desde una aplicación móvil, registrar movimientos con su motivo y mantener la trazabilidad del inventario en una base de datos central.
 
-## Funcionalidades implementadas
+## Funcionalidades
 
-- **Inicio:** resumen general con cantidad de productos, productos con stock bajo y lista de productos por reponer.
-- **Inventario:** listado de productos con búsqueda por nombre o código y filtros por estado (Todos, Stock bajo, Agotado). Cada producto muestra su estado con color y etiqueta (Disponible, Stock bajo, Agotado).
-- **Detalle de producto:** stock actual y mínimo, atributos opcionales (talla, color, modelo), precio e historial de movimientos del producto.
-- **Registro de movimientos:** entradas, salidas y ajustes, con motivo obligatorio. El formulario valida cada campo y muestra mensajes de error con ícono.
-- **Validaciones desacopladas de la interfaz:** las reglas viven en la carpeta `validacion/` (por ejemplo, no se puede sacar más stock del disponible).
-- **Persistencia local:** productos y movimientos se guardan en el dispositivo (JSON en `SharedPreferences`) y se conservan al cerrar la app.
-- **Ventas:** pantalla de indicadores comerciales (más y menos vendidos).
-- **Recurso nativo – notificaciones:** aviso cuando un producto llega al stock mínimo. En Android 13 o superior se solicita el permiso en tiempo de ejecución.
+- Consulta y búsqueda de productos del inventario.
+- Visualización del stock y stock mínimo.
+- Detalle de producto con atributos como talla, color y modelo cuando corresponda.
+- Registro de productos.
+- Registro de movimientos de tipo entrada, salida o ajuste, con motivo.
+- Historial de movimientos.
+- Resumen diario con visualización gráfica.
+- Copia local de productos y movimientos mediante Room para consultar los últimos datos sincronizados.
 
-## En desarrollo
+## Arquitectura
 
-- Escáner de códigos QR y de barras con la cámara (recurso nativo n.º 2).
-- ViewModel (MVVM) para separar el estado de la interfaz.
-- Formulario para crear y editar productos.
-- Animaciones de transición entre pantallas.
-
-## Estructura del proyecto
-
-```
-app/src/main/java/com/example/kaiju/
-├── model/           Producto y Movimiento
-├── data/            Datos de ejemplo y persistencia local
-├── validacion/      Reglas de validación de movimientos
-├── notificaciones/  Aviso de stock bajo
-├── ui/              Pantallas (Compose) y navegación
-│   └── theme/       Colores, tipografía y tema
-└── MainActivity.kt
+```text
+Aplicación Android
+  ├── Retrofit y Gson → API REST propia en Spring Boot
+  │                       └── Spring Data JPA / Hibernate → PostgreSQL
+  ├── Room → copia local de productos y movimientos
+  └── Retrofit → QuickChart para generar gráficos del resumen
 ```
 
-## Cómo ejecutar el proyecto
-
-**Requisitos:** Android Studio actualizado, conexión a internet (la primera sincronización descarga dependencias) y un emulador o un teléfono Android con API 29 o superior.
-
-1. Clona el repositorio:
-   ```
-   git clone https://github.com/Vicente1920/App_kaiju.git
-   ```
-2. Abre la carpeta en Android Studio (**File → Open**).
-3. Espera a que termine la sincronización de Gradle (barra de progreso inferior).
-4. Crea o elige un emulador en **Device Manager** (o conecta un teléfono con depuración USB).
-5. Presiona **Run** (▶) para instalar y abrir la app.
-
-**Pruebas unitarias:** clic derecho sobre la carpeta `app/src/test` → **Run Tests**.
-
-**Para empezar con los datos de ejemplo:** en el emulador, borra los datos de la app (Info de la app → Almacenamiento → Borrar datos) o desinstálala.
-
-## Reglas de negocio
-
-- Un producto está en **stock bajo** cuando su stock es menor o igual a su stock mínimo.
-- Un movimiento no puede dejar el stock en negativo.
-- Todo movimiento queda registrado con fecha, tipo, cantidad y motivo.
+La aplicación Android consume la API REST de Spring Boot. El backend valida las solicitudes y persiste productos y movimientos en PostgreSQL. Room mantiene una copia local de la información sincronizada. QuickChart se usa para generar el gráfico del resumen diario.
 
 ## Tecnologías
 
-Kotlin · Jetpack Compose · Material 3 · SharedPreferences (JSON) · Notificaciones de Android · Git y GitHub 
+**Aplicación móvil:** Kotlin, Jetpack Compose, Material 3, Retrofit, Gson y Room. Requiere Android 10 (API 29) o superior.
+
+**Microservicio:** Java 21, Spring Boot, Spring Web MVC, Spring Data JPA, Hibernate, Bean Validation y Maven.
+
+**Persistencia y servicios externos:** PostgreSQL para los datos del proyecto, H2 para las pruebas del backend y [QuickChart](https://quickchart.io/ ) para generar gráficos.
+
+**Despliegue de prueba:** AWS EC2. PM2 administra el microservicio Spring Boot; Node.js se conserva como respaldo durante la validación de la migración.
+
+## API REST
+
+La API propia usa el prefijo `/api` y expone estos endpoints:
+
+- `GET /api/health`: comprueba el estado del servicio.
+- `GET /api/productos`: lista los productos.
+- `GET /api/productos/{codigo}`: consulta un producto por código.
+- `POST /api/productos`: registra un producto.
+- `GET /api/movimientos`: lista los movimientos.
+- `POST /api/movimientos`: registra un movimiento y actualiza el stock.
+
+Ejemplo de solicitud para registrar un producto:
+
+```json
+{
+  "codigo": "KJ-100",
+  "nombre": "Polera de ejemplo",
+  "categoria": "Ropa",
+  "precio": 12990,
+  "stock": 10,
+  "stockMinimo": 3,
+  "talla": "M",
+  "color": "Negro",
+  "modelo": "Clásica"
+}
+```
+
+Ejemplo de solicitud para registrar un movimiento:
+
+```json
+{
+  "codigoProducto": "KJ-100",
+  "tipo": "Salida",
+  "cantidad": 1,
+  "motivo": "Venta"
+}
+```
+
+Los tipos de movimiento aceptados son `Entrada`, `Salida` y `Ajuste`. La API valida los datos recibidos, comprueba que el producto exista y evita que una salida deje el stock en un valor negativo.
+
+## Base de datos y configuración
+
+PostgreSQL almacena los productos y sus movimientos. Spring Boot valida el esquema existente al iniciar; la aplicación no crea ni modifica automáticamente las tablas.
+
+El backend usa estas variables de entorno:
+
+- `PORT`: puerto HTTP; por defecto, `3001`.
+- `DB_HOST`: dirección del servidor PostgreSQL.
+- `DB_PORT`: puerto de PostgreSQL; por defecto, `5432`.
+- `DB_NAME`: nombre de la base de datos.
+- `DB_USER`: usuario de la base de datos.
+- `DB_PASSWORD`: contraseña de la base de datos.
+
+No guardes credenciales reales en el repositorio. No subas archivos `.env`, contraseñas ni la clave privada `.jks` a GitHub.
+
+## Ejecución y pruebas
+
+### Aplicación Android
+
+Clona la rama de migración:
+
+```bash
+git clone --branch migracion-springboot --single-branch https://github.com/Vicente1920/App_kaiju.git
+```
+
+Abre la carpeta del proyecto en Android Studio y espera que termine la sincronización de Gradle. Luego conecta un teléfono Android o inicia un emulador.
+
+Desde PowerShell, en la carpeta raíz del proyecto, ejecuta las pruebas:
+
+```powershell
+.\gradlew.bat test
+```
+
+La dirección de la API usada por Android se configura en:
+
+```text
+app/src/main/java/com/example/kaiju/red/ClienteRed.kt
+```
+
+Para usar otro servidor, actualiza allí el host y el puerto de la API.
+
+### Microservicio Spring Boot
+
+Se requiere Java 21. Desde PowerShell, abre la carpeta `api-spring\kaiju-api-spring` y ejecuta las pruebas:
+
+```powershell
+.\mvnw.cmd test
+```
+
+Para generar el paquete ejecutable:
+
+```powershell
+.\mvnw.cmd package
+```
+
+El archivo `.jar` se genera en:
+
+```text
+target/kaiju-api-spring-0.0.1-SNAPSHOT.jar
+```
+
+Para iniciar Spring Boot localmente, configura primero las variables de entorno con los datos de una base PostgreSQL disponible. Ejemplo en PowerShell:
+
+```powershell
+$env:PORT = "3001"
+$env:DB_HOST = "127.0.0.1"
+$env:DB_PORT = "5432"
+$env:DB_NAME = "kaiju_db"
+$env:DB_USER = "<usuario-postgres>"
+$env:DB_PASSWORD = "<contraseña-postgres>"
+.\mvnw.cmd spring-boot:run
+```
+
+Reemplaza los valores entre `< >` por los de tu propio entorno. No compartas ni publiques credenciales.
+
+## APK firmada
+
+La APK release se genera desde Android Studio con **Build → Generate Signed Bundle / APK → APK → release**.
+
+Para que la APK nueva pueda actualizar una versión anterior instalada, se debe firmar con el mismo archivo `.jks`, alias y credenciales de firma. El archivo generado normalmente queda en:
+
+```text
+app/release/app-release.apk
+```
+
+La clave `.jks` y sus contraseñas son privadas y no deben compartirse ni subirse al repositorio.
+
+## Despliegue y seguridad
+
+En el entorno de prueba, Spring Boot escucha en el puerto `3001` y Node.js permanece en `3000` como respaldo. El acceso al puerto de la API se restringe en el Security Group de AWS a las IP autorizadas para las pruebas o demostraciones.
+
+El puerto `5432` de PostgreSQL no debe exponerse a Internet. El despliegue académico usa HTTP y no incluye autenticación de usuarios; no debe considerarse una configuración de producción.
+
+## Validación realizada
+
+- Las pruebas del backend Spring Boot finalizaron correctamente con Maven.
+- Las pruebas de Android finalizaron correctamente con Gradle.
+- Los endpoints de salud de Spring Boot y Node.js respondieron correctamente.
+- Se comprobó la lectura de productos y movimientos desde Spring Boot.
+- La APK release firmada se instaló y mostró el inventario conectándose a Spring Boot.
+
+## Tablero de trabajo
+
+El seguimiento de tareas del proyecto está en Trello: [Tablero Kaiju](https://trello.com/b/PKMUumSI/appkaiju ).
+
+## Repositorio
+
+Código fuente: [App_kaiju — rama migracion-springboot](https://github.com/Vicente1920/App_kaiju/tree/migracion-springboot ).
